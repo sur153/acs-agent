@@ -1,0 +1,2 @@
+re azure-ai-projects
+zure-identity openai
