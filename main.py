@@ -52,7 +52,7 @@ with (
         project_connection_id="Voicmcp",
     )
 
-    vector_store = openai_client.vector_stores.create(name="ProductInfoStore")
+    vector_store = openai_client.vector_stores.create(name="ProductInfoStoreTest")
     print(f"Vector store created (id: {vector_store.id})")
 
     # Load the file to be indexed for search
@@ -69,7 +69,7 @@ with (
 
     # Create a prompt agent with MCP tool capabilities
     agent = project_client.agents.create_version(
-        agent_name="my-voic-agent-test-v1",
+        agent_name="my-voic-agent-test-v2",
         definition=PromptAgentDefinition(
             model=os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
             instructions="""ROLE & PERSONALITY
@@ -83,7 +83,7 @@ with (
                         ════════════════════════════════════════════════════════════════
                         
                         1. INITIALIZATION:
-                        - Use the file search tool to load  questions from the json file
+                        - Use the file search tool to retrieve and present questions in sequence (Q1 → Q2 → Q3, etc.) from the JSON configuration file.
                         - Parse the JSON to get the complete question tree structure
                         - proceed or start with Question Q1.
                         - Load ONLY ONE question at a time.
@@ -93,8 +93,10 @@ with (
                         REPEAT UNTIL question.type == "end":
                         Each question follows this STRICT state progression:
 
-                        1. QUESTION_ASKED: Ask the question exactly as provided
-                        2. INPUT_RECEIVED: User provides spoken input
+                        1. QUESTION_ASKED: Ask the question exactly as provided. 
+						 - If a text-type question contains allowed_values, do not display or hint at those values in the initial prompt. Ask the   question naturally and wait for the user to respond before applying any validation or mapping.
+						 - For Date Type questions do not provide hint for format,user can provide any format and you can normaize according to format.
+						2. INPUT_RECEIVED: User provides spoken input
                         3. NORMALIZED: Process input (trim, correct, normalize)
                         4. CONFIRMATION_ASKED: Ask confirmation EXACTLY ONCE
                         - Track: confirmation_asked_timestamp per question
@@ -108,6 +110,7 @@ with (
                         7. RETRY_CHECK:
                         - If retries < 3: Say "Let me ask again" and go to step 1
                         - If retries >= 3: Skip question and move to next
+						8. Do not skip any question. Ensure that every question is asked and that navigation follows the defined branching logic based on the user’s response
 
                         Note: After reaching the end node, provide a complete summary of all questions and their corresponding answers, then invoke the MCP tool to save each question–answer pair into Cosmos DB and terminate gracefully.
                         ────────────────────────────────────────────
@@ -147,9 +150,11 @@ with (
 
                         SECTION TRANSITIONS (Natural):
                         - Before personal section (Q1): "Let's start with some basic information about yourself."
-                        - Before employment (Q19): "Great! Now I have a few questions about your employment."
+                        - Before employment section (Q19): "Great! Now I have a few questions about your employment."
+                        - Before medical_history section (Q25): "Thanks! Now, Now I have a few questions about your medical history."
                         - At conclusion: "Wonderful! That's all the questions I have."
 
+          
                         ─────────────────────────────────────────────
                         INTERNAL MEMORY
                         ────────────────────────────────────────────
@@ -185,7 +190,7 @@ with (
                             Parse: "January 15, 1990" → Normalize to MM/DD/YYYY
 
                         - Treat the following spoken phrases as an explicit indication of no value:
-                            - "Nah", "No", "Nope","none","nothing","not at this time","not now","don't have","do not have"
+                            - "Nah", "No", "Nope","none","nothing","not at this time","not now","don't have","do not have","not available"
                           Normalize all such inputs to an empty value ("").
 
                         - Treat the following spoken phrases as an explicit indication of "not applicable":
@@ -246,6 +251,18 @@ with (
                         - date: Valid date, MM/DD/YYYY format
                         - choice: Matches one JSON choice exactly
                         - yesno: "Yes" or "No" only
+						- For text-type question with allowed_values : 
+							1. Attempt to map the user’s intent to one of the allowed_values.
+							   - Use common synonyms and variations when mapping.
+							   - Always normalize the result to the canonical allowed value.
+							2. If the user’s response cannot be confidently mapped:
+							   - Politely present the available options from allowed_values.
+							   - Ask the user to choose one of them.
+							3. If the response still does not match any allowed_value after clarification:
+							   - Treat the answer as unmatched.
+							   - Follow the default (fallback) branch defined in the question flow.
+							4. Never invent new values outside allowed_values.
+							5. Store only the normalized allowed value (or empty value if unmatched).
 
                         If VALID → Store answer, move to next question
                         If INVALID → Check retry count (see below)
@@ -381,7 +398,7 @@ with (
                         When end node reached:
 
                         1. Say: "Wonderful! Let me quickly read back what I have..."
-                        2. Summarize all collected answers naturally.
+                        2.Summarize all collected answers in natural language. Include all questions, even if the answer is empty or marked as “Not Applicable.”
                         3. Normalize any "not applicable" responses to "NA".
                         4. Normalize any empty/no responses to "".
                         5. Ask: "Does everything sound correct?"

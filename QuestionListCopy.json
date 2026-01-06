@@ -149,7 +149,88 @@
     "text": "Employer Address",
     "type": "text",
     "meta":{"section":"employment","subsection":"address"},
-    "next": "END"
+    "next": "Q25"
+  },
+  "Q25": {
+  "text": "What medical conditions or diseases do you currently have?",
+  "type": "text",
+  "meta": {
+    "section": "medical_history",
+    "allowed_values": [
+      "Hypertension",
+      "Diabetes",
+      "Kidney Infection"
+    ]
+  },
+  "next": {
+    "Hypertension": "Q26_HTN_1",
+    "Diabetes": "Q26_DM_1",
+    "Kidney Infection": "Q26_KIDNEY_1",
+    "default": "END"
+  }
+  },
+  "Q26_HTN_1": {
+  "text": "When were you first diagnosed with hypertension?",
+  "type": "text",
+  "meta": { "section": "medical_history" },
+  "next": "Q26_HTN_2"
+},
+"Q26_HTN_2": {
+  "text": "Are you currently taking medication for hypertension?",
+  "type": "yesno",
+  "meta": { "section": "medical_history" },
+  "next": {
+    "Yes": "Q26_HTN_3",
+    "No": "END"
+  }
+ },
+ "Q26_HTN_3": {
+  "text": "Please tell me the name of the medication you take for hypertension.",
+  "type": "text",
+  "meta": { "section": "medical_history" },
+  "next": "END"
+  },
+  "Q26_DM_1": {
+  "text": "When were you first diagnosed with diabetes?",
+  "type": "text",
+  "meta": { "section": "medical_history" },
+  "next": "Q26_DM_2"
+  },
+  "Q26_DM_2": {
+  "text": "Are you currently on medication or insulin for diabetes?",
+  "type": "yesno",
+  "meta": { "section": "medical_history" },
+  "next": {
+    "Yes": "Q26_DM_3",
+    "No": "END"
+  }
+  },
+  "Q26_DM_3": {
+  "text": "Please tell me the medication or insulin you use for diabetes.",
+  "type": "text",
+  "meta": { "section": "medical_history" },
+  "next": "END"
+  },
+  "Q26_KIDNEY_1": {
+  "text": "When did you experience the kidney infection?",
+  "type": "text",
+  "meta": { "section": "medical_history" },
+  "next": "Q26_KIDNEY_2"
+  },
+  "Q26_KIDNEY_2": {
+  "text": "Did you receive any treatment or hospitalization for the kidney infection?",
+  "type": "yesno",
+  "meta": { "section": "medical_history" },
+  "next": {
+    "Yes": "Q26_KIDNEY_3",
+    "No": "END"
+  }
+  },
+  "Q26_KIDNEY_3": {
+  "text": "Please describe the treatment or medication you received.",
+  "type": "text",
+  "meta": { "section": "medical_history" },
+  "next": "END"
   },
   "END": {
     "text":"END OF FLOW (first 20 pages).",
